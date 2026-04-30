@@ -1,8 +1,8 @@
-// api/upload.js - 分片上传API（支持大文件，合并后更新数据库）
+// api/upload.js - 增强版（含详细错误日志）
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { supabase } from './supabase.js';   // 新增导入
+import { supabase } from './supabase.js';
 
 const chunksStore = new Map();
 const filesStore = new Map();
@@ -29,95 +29,132 @@ export default async function handler(req, res) {
 
   // 视频分片上传
   if (pathname === '/api/upload-video-chunk' && req.method === 'POST') {
-    const formData = await parseFormData(req);
-    const { chunk, chunkIndex, totalChunks, uploadId, fileName, courseId } = formData;
-    if (!chunksStore.has(uploadId)) {
-      chunksStore.set(uploadId, { chunks: [], totalChunks: parseInt(totalChunks), fileName, courseId });
+    try {
+      const formData = await parseFormData(req);
+      const { chunk, chunkIndex, totalChunks, uploadId, fileName, courseId } = formData;
+      if (!chunksStore.has(uploadId)) {
+        chunksStore.set(uploadId, { chunks: [], totalChunks: parseInt(totalChunks), fileName, courseId });
+      }
+      const upload = chunksStore.get(uploadId);
+      upload.chunks[parseInt(chunkIndex)] = chunk;
+      res.writeHead(200, headers);
+      return res.end(JSON.stringify({ success: true, chunkIndex }));
+    } catch (err) {
+      console.error('Chunk upload error:', err);
+      res.writeHead(500, headers);
+      return res.end(JSON.stringify({ error: 'Chunk upload failed: ' + err.message }));
     }
-    const upload = chunksStore.get(uploadId);
-    upload.chunks[parseInt(chunkIndex)] = chunk;
-    res.writeHead(200, headers);
-    return res.end(JSON.stringify({ success: true, chunkIndex }));
   }
 
-  // 视频合并并更新课程 video_url
+  // 视频合并
   if (pathname === '/api/merge-video' && req.method === 'POST') {
-    const body = JSON.parse(req.body);
-    const { uploadId, fileName, courseId } = body;
-    const upload = chunksStore.get(uploadId);
-    if (!upload) {
-      res.writeHead(404, headers);
-      return res.end(JSON.stringify({ error: 'Upload not found' }));
-    }
-
-    const filePath = path.join(TEMP_DIR, `${uploadId}_${fileName}`);
-    const writeStream = fs.createWriteStream(filePath);
-    for (let i = 0; i < upload.chunks.length; i++) {
-      const chunk = upload.chunks[i];
-      if (chunk) writeStream.write(Buffer.from(chunk, 'base64'));
-    }
-    writeStream.end();
-
-    writeStream.on('finish', async () => {
-      const videoUrl = `/uploads/${uploadId}_${fileName}`;
-      // 保存文件信息到内存存储（实际生产可改用云存储）
-      filesStore.set(videoUrl, { path: filePath, fileName, size: fs.statSync(filePath).size });
-      // ========== 关键修复：更新数据库中的 video_url ==========
-      const { error } = await supabase
-        .from('courses')
-        .update({ video_url: videoUrl })
-        .eq('id', parseInt(courseId));
-      if (error) {
-        console.error('更新课程视频URL失败:', error);
-        res.writeHead(500, headers);
-        return res.end(JSON.stringify({ error: 'Database update failed' }));
+    try {
+      const body = JSON.parse(req.body);
+      const { uploadId, fileName, courseId } = body;
+      console.log('Merge request received:', { uploadId, fileName, courseId });
+      
+      const upload = chunksStore.get(uploadId);
+      if (!upload) {
+        console.error('Upload not found in store');
+        res.writeHead(404, headers);
+        return res.end(JSON.stringify({ error: 'Upload session not found' }));
       }
-      chunksStore.delete(uploadId);
-      res.writeHead(200, headers);
-      return res.end(JSON.stringify({ success: true, url: videoUrl }));
-    });
+
+      console.log(`Merging ${upload.chunks.length} chunks for ${fileName}`);
+      const filePath = path.join(TEMP_DIR, `${uploadId}_${fileName}`);
+      const writeStream = fs.createWriteStream(filePath);
+      
+      for (let i = 0; i < upload.chunks.length; i++) {
+        const chunk = upload.chunks[i];
+        if (chunk) {
+          writeStream.write(Buffer.from(chunk, 'base64'));
+        }
+      }
+      writeStream.end();
+
+      writeStream.on('finish', async () => {
+        const videoUrl = `/uploads/${uploadId}_${fileName}`;
+        filesStore.set(videoUrl, { path: filePath, fileName, size: fs.statSync(filePath).size });
+        
+        console.log('File saved, updating database for course:', courseId);
+        const { error } = await supabase
+          .from('courses')
+          .update({ video_url: videoUrl })
+          .eq('id', parseInt(courseId));
+        
+        if (error) {
+          console.error('Supabase update error:', error);
+          res.writeHead(500, headers);
+          return res.end(JSON.stringify({ error: 'Database update failed: ' + error.message }));
+        }
+        
+        chunksStore.delete(uploadId);
+        console.log('Merge successful');
+        res.writeHead(200, headers);
+        return res.end(JSON.stringify({ success: true, url: videoUrl }));
+      });
+
+      writeStream.on('error', (err) => {
+        console.error('File write error:', err);
+        res.writeHead(500, headers);
+        return res.end(JSON.stringify({ error: 'File write failed: ' + err.message }));
+      });
+    } catch (err) {
+      console.error('Merge error:', err);
+      res.writeHead(500, headers);
+      return res.end(JSON.stringify({ error: 'Merge failed: ' + err.message }));
+    }
     return;
   }
 
   // 文件分片上传（与视频逻辑类似，但不更新数据库）
   if (pathname === '/api/upload-file-chunk' && req.method === 'POST') {
-    const formData = await parseFormData(req);
-    const { chunk, chunkIndex, totalChunks, uploadId, fileName } = formData;
-    if (!chunksStore.has(uploadId)) {
-      chunksStore.set(uploadId, { chunks: [], totalChunks: parseInt(totalChunks), fileName, type: 'file' });
+    try {
+      const formData = await parseFormData(req);
+      const { chunk, chunkIndex, totalChunks, uploadId, fileName } = formData;
+      if (!chunksStore.has(uploadId)) {
+        chunksStore.set(uploadId, { chunks: [], totalChunks: parseInt(totalChunks), fileName, type: 'file' });
+      }
+      const upload = chunksStore.get(uploadId);
+      upload.chunks[parseInt(chunkIndex)] = chunk;
+      res.writeHead(200, headers);
+      return res.end(JSON.stringify({ success: true }));
+    } catch (err) {
+      res.writeHead(500, headers);
+      return res.end(JSON.stringify({ error: err.message }));
     }
-    const upload = chunksStore.get(uploadId);
-    upload.chunks[parseInt(chunkIndex)] = chunk;
-    res.writeHead(200, headers);
-    return res.end(JSON.stringify({ success: true }));
   }
 
   if (pathname === '/api/merge-file' && req.method === 'POST') {
-    const body = JSON.parse(req.body);
-    const { uploadId, fileName } = body;
-    const upload = chunksStore.get(uploadId);
-    if (!upload) {
-      res.writeHead(404, headers);
-      return res.end(JSON.stringify({ error: 'Upload not found' }));
+    try {
+      const body = JSON.parse(req.body);
+      const { uploadId, fileName } = body;
+      const upload = chunksStore.get(uploadId);
+      if (!upload) {
+        res.writeHead(404, headers);
+        return res.end(JSON.stringify({ error: 'Upload not found' }));
+      }
+      const filePath = path.join(TEMP_DIR, `${uploadId}_${fileName}`);
+      const writeStream = fs.createWriteStream(filePath);
+      for (let i = 0; i < upload.chunks.length; i++) {
+        const chunk = upload.chunks[i];
+        if (chunk) writeStream.write(Buffer.from(chunk, 'base64'));
+      }
+      writeStream.end();
+      writeStream.on('finish', () => {
+        const fileUrl = `/uploads/${uploadId}_${fileName}`;
+        filesStore.set(fileUrl, { path: filePath, fileName, size: fs.statSync(filePath).size });
+        chunksStore.delete(uploadId);
+        res.writeHead(200, headers);
+        return res.end(JSON.stringify({ success: true, url: fileUrl }));
+      });
+    } catch (err) {
+      res.writeHead(500, headers);
+      return res.end(JSON.stringify({ error: err.message }));
     }
-    const filePath = path.join(TEMP_DIR, `${uploadId}_${fileName}`);
-    const writeStream = fs.createWriteStream(filePath);
-    for (let i = 0; i < upload.chunks.length; i++) {
-      const chunk = upload.chunks[i];
-      if (chunk) writeStream.write(Buffer.from(chunk, 'base64'));
-    }
-    writeStream.end();
-    writeStream.on('finish', () => {
-      const fileUrl = `/uploads/${uploadId}_${fileName}`;
-      filesStore.set(fileUrl, { path: filePath, fileName, size: fs.statSync(filePath).size });
-      chunksStore.delete(uploadId);
-      res.writeHead(200, headers);
-      return res.end(JSON.stringify({ success: true, url: fileUrl }));
-    });
     return;
   }
 
-  // 获取文件列表
   if (pathname === '/api/files' && req.method === 'GET') {
     const fileList = Array.from(filesStore.entries()).map(([url, info]) => ({
       url,
@@ -132,7 +169,7 @@ export default async function handler(req, res) {
   return res.end(JSON.stringify({ error: 'Not found' }));
 }
 
-// 解析 multipart/form-data（保持原样，注意性能）
+// 解析 multipart/form-data（保持原样）
 async function parseFormData(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
