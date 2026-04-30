@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>管理后台 - PCB&硬件进阶学院</title>
+    <!-- 引入 Quill 富文本编辑器 -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <!-- 引入 Chart.js 图表 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            cursor: pointer;
+        }
+
+        .nav-links button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            color: #1d1d1f;
+            font-weight: 500;
+        }
+
+        .nav-links button:hover {
+            background: #e8e8ed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white !important;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #8e8e93;
+            margin-top: 0.5rem;
+        }
+
+        /* 图表区域 */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        canvas {
+            max-height: 300px;
+        }
+
+        /* 管理标签页 */
+        .admin-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .tab-btn {
+            padding: 0.6rem 1.2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border-radius: 40px;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        /* 管理面板 */
+        .admin-panel {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #1d1d1f;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border: 2px solid #e9e9ef;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            background: #f8f8fa;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area:hover {
+            background: #e8eaf6;
+            border-color: #764ba2;
+        }
+
+        .upload-area.drag-over {
+            background: #ede7f6;
+            border-color: #764ba2;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9e9ef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+
+        /* 数据表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th, .data-table td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid #e9e9ef;
+        }
+
+        .data-table th {
+            background: #f8f8fa;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .delete-btn, .edit-btn {
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            border: none;
+        }
+
+        .delete-btn { background: #ff6b6b; color: white; }
+        .edit-btn { background: #4facfe; color: white; }
+
+        .w-100 { width: 100%; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .text-center { text-align: center; }
+
+        /* 富文本编辑器容器 */
+        .editor-container {
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+
+        /* 文件列表 */
+        .file-list {
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #e9e9ef;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .admin-tabs { overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo" onclick="window.location.href='/'">🔧 PCB&硬件进阶学院 - 管理后台</div>
+        <div class="nav-links">
+            <button onclick="window.location.href='/'">返回首页</button>
+            <button id="logoutBtn" onclick="logout()">退出登录</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 统计卡片 -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><div class="stat-number" id="statUsers">-</div><div class="stat-label">总用户数</div></div>
+            <div class="stat-card"><div class="stat-number" id="statCourses">-</div><div class="stat-label">课程数</div></div>
+            <div class="stat-card"><div class="stat-number" id="statArticles">-</div><div class="stat-label">文章数</div></div>
+            <div class="stat-card"><div class="stat-number" id="statOrders">-</div><div class="stat-label">订单数</div></div>
+            <div class="stat-card"><div class="stat-number" id="statRevenue">-</div><div class="stat-label">总收入(元)</div></div>
+            <div class="stat-card"><div class="stat-number" id="statVideos">-</div><div class="stat-label">视频数</div></div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="charts-grid">
+            <div class="chart-card"><h3>📊 月度收入趋势</h3><canvas id="revenueChart"></canvas></div>
+            <div class="chart-card"><h3>📈 课程访问量</h3><canvas id="coursesChart"></canvas></div>
+        </div>
+
+        <!-- 管理标签页 -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="switchTab('home')">首页内容</button>
+            <button class="tab-btn" onclick="switchTab('course')">课程管理</button>
+            <button class="tab-btn" onclick="switchTab('chapter')">章节管理</button>
+            <button class="tab-btn" onclick="switchTab('video')">视频管理</button>
+            <button class="tab-btn" onclick="switchTab('file')">文件管理</button>
+            <button class="tab-btn" onclick="switchTab('article')">文章管理</button>
+            <button class="tab-btn" onclick="switchTab('question')">题库管理</button>
+            <button class="tab-btn" onclick="switchTab('user')">用户管理</button>
+            <button class="tab-btn" onclick="switchTab('order')">订单管理</button>
+            <button class="tab-btn" onclick="switchTab('package')">套餐管理</button>
+            <button class="tab-btn" onclick="switchTab('coupon')">优惠券管理</button>
+        </div>
+
+        <!-- 管理内容区域 -->
+        <div class="admin-panel" id="adminContent"></div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let currentUser = null;
+        let quillEditor = null;
+        let revenueChart = null;
+        let coursesChart = null;
+
+        // 检查登录状态
+        async function checkAuth() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                if (currentUser.role !== 'admin') {
+                    alert('无管理员权限');
+                    window.location.href = '/';
+                    return false;
+                }
+            } else {
+                const res = await fetch(`${API_URL}/api/check-auth`);
+                const data = await res.json();
+                if (!data.isAdmin) {
+                    alert('请先登录管理员账号');
+                    window.location.href = '/';
+                    return false;
+                }
+                currentUser = data.user;
+            }
+            return true;
+        }
+
+        // 加载统计数据
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_URL}/api/stats`);
+                const stats = await res.json();
+                document.getElementById('statUsers').innerText = stats.totalUsers || 0;
+                document.getElementById('statCourses').innerText = stats.totalCourses || 0;
+                document.getElementById('statArticles').innerText = stats.totalArticles || 0;
+                document.getElementById('statOrders').innerText = stats.totalOrders || 0;
+                document.getElementById('statRevenue').innerText = '¥' + (stats.totalRevenue || 0);
+                document.getElementById('statVideos').innerText = stats.totalVideos || 0;
+                
+                // 更新图表
+                if (revenueChart) revenueChart.destroy();
+                if (coursesChart) coursesChart.destroy();
+                
+                const ctx1 = document.getElementById('revenueChart').getContext('2d');
+                revenueChart = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: stats.monthLabels || ['1月', '2月', '3月', '4月', '5月', '6月'],
+                        datasets: [{ label: '收入(元)', data: stats.monthRevenue || [0,0,0,0,0,0], borderColor: '#667eea', tension: 0.3 }]
+                    }
+                });
+                
+                const ctx2 = document.getElementById('coursesChart').getContext('2d');
+                coursesChart = new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: stats.courseNames || ['课程1', '课程2', '课程3'],
+                        datasets: [{ label: '访问次数', data: stats.courseViews || [0,0,0], backgroundColor: '#764ba2' }]
+                    }
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        // 切换管理标签页
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderAdminContent(tab);
+        }
+
+        async function renderAdminContent(tab) {
+            const container = document.getElementById('adminContent');
+            if (tab === 'home') {
+                const res = await fetch(`${API_URL}/api/home-content`);
+                const home = await res.json();
+                container.innerHTML = `
+                    <h3>🏠 首页内容管理</h3>
+                    <div class="form-group"><label>主标题</label><input type="text" id="heroTitle" value="${home.heroTitle || 'PCB&硬件进阶学院'}"></div>
+                    <div class="form-group"><label>副标题</label><input type="text" id="heroSubtitle" value="${home.heroSubtitle || '从入门到专家，一站式学习平台'}"></div>
+                    <div class="form-group"><label>特色介绍</label><textarea id="features" rows="3">${(home.features || []).join('\n')}</textarea></div>
+                    <button onclick="saveHomeContent()" class="btn-primary">保存首页内容</button>
+                `;
+            } 
+            else if (tab === 'course') {
+                const res = await fetch(`${API_URL}/api/courses`);
+                const courses = await res.json();
+                container.innerHTML = `
+                    <h3>📚 课程管理</h3>
+                    <div class="form-group"><label>课程分类</label><select id="courseCat"><option value="pcb">PCB课程</option><option value="hardware">硬件课程</option></select></div>
+                    <div class="form-group"><label>课程名称</label><input type="text" id="courseName" placeholder="课程名称"></div>
+                    <div class="form-group"><label>课程简介</label><textarea id="courseDesc" rows="2" placeholder="课程简介"></textarea></div>
+                    <div class="form-group"><label>访问权限</label><select id="courseAccess"><option value="free">免费</option><option value="member">会员专享</option></select></div>
+                    <div class="form-group"><label>排序</label><input type="number" id="courseOrder" value="0"></div>
+                    <button onclick="addCourse()" class="btn-primary">添加课程</button>
+                    <div class="mt-2"><h4>现有课程</h4><table class="data-table"><thead><tr><th>名称</th><th>分类</th><th>权限</th><th>操作</th></tr></thead><tbody>${courses.map(c => `<tr><td>${c.name}</td><td>${c.category === 'pcb' ? 'PCB' : '硬件'}</td><td>${c.access === 'free' ? '免费' : '会员'}</td><td><button class="edit-btn" onclick="editCourse(${c.id})">编辑</button><button class="delete-btn" onclick="deleteCourse(${c.id})">删除</button></td></tr>`).join('')}</tbody></table></div>
+                `;
+            }
+            else if (tab === 'chapter') {
+                const res = await fetch(`${API_URL}/api/courses`);
+                const courses = await res.json();
+                container.innerHTML = `
+                    <h3>📖 章节管理</h3>
+                    <div class="form-group"><label>选择课程</label><select id="chapterCourse" onchange="loadChaptersForCourse()">${courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>新章节名称</label><input type="text" id="newChapter" placeholder="例如：第1章 入门介绍"></div>
+                    <button onclick="addChapter()" class="btn-primary">添加章节</button>
+                    <div id="chapterList" class="mt-2"></div>
+                `;
+                if (courses.length) loadChaptersForCourse();
+            }
+            else if (tab === 'video') {
+                const res = await fetch(`${API_URL}/api/courses`);
+                const courses = await res.json();
+                container.innerHTML = `
+                    <h3>🎬 视频管理</h3>
+                    <div class="form-group"><label>选择课程</label><select id="videoCourse">${courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+                    <div class="upload-area" id="videoUploadArea" onclick="document.getElementById('videoFile').click()">
+                        📁 点击或拖拽视频文件到此处上传<br>
+                        <small>支持 MP4, MOV, AVI, MKV 格式，最大2GB</small>
+                    </div>
+                    <input type="file" id="videoFile" accept="video/*" style="display:none" onchange="handleVideoUpload(this.files[0])">
+                    <div id="videoProgress" class="progress-bar" style="display:none"><div id="videoProgressFill" class="progress-fill" style="width:0%"></div></div>
+                    <div id="videoInfo" class="mt-2"></div>
+                    <div class="mt-2"><h4>已上传视频</h4><div id="videoList"></div></div>
+                `;
+                loadVideoList();
+            }
+            else if (tab === 'file') {
+                container.innerHTML = `
+                    <h3>📁 文件管理</h3>
+                    <div class="upload-area" id="fileUploadArea" onclick="document.getElementById('fileInput').click()">
+                        📁 点击或拖拽文件到此处上传<br>
+                        <small>支持 PDF, DOC, ZIP, RAR 等格式，最大2GB</small>
+                    </div>
+                    <input type="file" id="fileInput" style="display:none" onchange="handleFileUpload(this.files[0])">
+                    <div id="fileProgress" class="progress-bar" style="display:none"><div id="fileProgressFill" class="progress-fill" style="width:0%"></div></div>
+                    <div class="mt-2"><h4>已上传文件</h4><div id="fileList" class="file-list"></div></div>
+                `;
+                loadFileList();
+            }
+            else if (tab === 'article') {
+                const res = await fetch(`${API_URL}/api/articles`);
+                const articles = await res.json();
+                container.innerHTML = `
+                    <h3>📝 文章管理</h3>
+                    <div class="form-group"><label>文章标题</label><input type="text" id="articleTitle"></div>
+                    <div class="form-group"><label>访问权限</label><select id="articleAccess"><option value="free">免费</option><option value="member">会员专享</option></select></div>
+                    <div class="form-group"><label>文章内容</label><div id="editor" class="editor-container"></div></div>
+                    <button onclick="saveArticle()" class="btn-primary">发布文章</button>
+                    <div class="mt-2"><h4>现有文章</h4><table class="data-table"><thead><tr><th>标题</th><th>权限</th><th>操作</th></tr></thead><tbody>${articles.map(a => `<tr><td>${a.title}</td><td>${a.access === 'free' ? '免费' : '会员'}</td><td><button class="edit-btn" onclick="editArticle(${a.id})">编辑</button><button class="delete-btn" onclick="deleteArticle(${a.id})">删除</button></td></tr>`).join('')}</tbody></table></div>
+                `;
+                if (quillEditor) quillEditor = null;
+                quillEditor = new Quill('#editor', { theme: 'snow', placeholder: '写点什么...' });
+            }
+            else if (tab === 'question') {
+                const res = await fetch(`${API_URL}/api/questions`);
+                const questions = await res.json();
+                container.innerHTML = `
+                    <h3>❓ 题库管理</h3>
+                    <div class="form-group"><label>题库分类</label><select id="qCat"><option value="pcb">PCB面试题库</option><option value="hardware">硬件面试题库</option></select></div>
+                    <div class="form-group"><label>题目类型</label><select id="qType"><option value="choice">选择题</option><option value="qa">问答题</option></select></div>
+                    <div class="form-group"><label>题目</label><input type="text" id="qText"></div>
+                    <div class="form-group"><label>答案</label><textarea id="qAnswer" rows="2"></textarea></div>
+                    <div class="form-group"><label>选项（选择题用逗号分隔）</label><input type="text" id="qOptions" placeholder="A.选项1,B.选项2,C.选项3,D.选项4"></div>
+                    <button onclick="addQuestion()" class="btn-primary">添加题目</button>
+                    <div class="mt-2"><h4>现有题目</h4><table class="data-table"><thead><tr><th>题目</th><th>分类</th><th>类型</th><th>操作</th></tr></thead><tbody>${questions.map(q => `<tr><td>${q.question.substring(0, 50)}...</td><td>${q.category === 'pcb' ? 'PCB' : '硬件'}</td><td>${q.type === 'choice' ? '选择' : '问答'}</td><td><button class="delete-btn" onclick="deleteQuestion(${q.id})">删除</button></td></tr>`).join('')}</tbody></table></div>
+                `;
+            }
+            else if (tab === 'user') {
+                const res = await fetch(`${API_URL}/api/users`);
+                const users = await res.json();
+                container.innerHTML = `
+                    <h3>👥 用户管理</h3>
+                    <div class="form-group"><label>用户名</label><input type="text" id="newUserName"></div>
+                    <div class="form-group"><label>邮箱</label><input type="email" id="newUserEmail"></div>
+                    <div class="form-group"><label>密码</label><input type="password" id="newUserPwd"></div>
+                    <div class="form-group"><label>会员类型</label><select id="newUserMembership"><option value="none">免费</option><option value="month">月会员</option><option value="year">年会员</option></select></div>
+                    <button onclick="addUser()" class="btn-primary">添加用户</button>
+                    <div class="mt-2"><h4>现有用户</h4><table class="data-table"><thead><tr><th>用户名</th><th>邮箱</th><th>会员类型</th><th>注册时间</th><th>操作</th></tr></thead><tbody>${users.map(u => `<tr><td>${u.username}</td><td>${u.email}</td><td>${u.membership === 'month' ? '月会员' : u.membership === 'year' ? '年会员' : '免费'}</td><td>${new Date(u.createdAt).toLocaleDateString()}</td><td><button class="edit-btn" onclick="editUserMembership(${u.id})">改会员</button><button class="delete-btn" onclick="deleteUser(${u.id})">删除</button></td></tr>`).join('')}</tbody></table></div>
+                `;
+            }
+            else if (tab === 'order') {
+                const res = await fetch(`${API_URL}/api/orders`);
+                const orders = await res.json();
+                container.innerHTML = `
+                    <h3>💰 订单管理</h3>
+                    <div class="form-group"><label>用户邮箱</label><input type="email" id="orderEmail"></div>
+                    <div class="form-group"><label>套餐</label><select id="orderPackage"><option value="month">月会员(99元)</option><option value="year">年会员(599元)</option></select></div>
+                    <button onclick="createOrder()" class="btn-primary">创建订单</button>
+                    <div class="mt-2"><h4>订单列表</h4><table class="data-table"><thead><tr><th>订单号</th><th>用户</th><th>金额</th><th>状态</th><th>时间</th></tr></thead><tbody>${orders.map(o => `<tr><td>#${o.id}</td><td>${o.user_email}</td><td>¥${o.amount}</td><td>${o.status}</td><td>${new Date(o.createdAt).toLocaleString()}</td></tr>`).join('')}</tbody></table></div>
+                `;
+            }
+            else if (tab === 'package') {
+                const res = await fetch(`${API_URL}/api/packages`);
+                const packages = await res.json();
+                container.innerHTML = `
+                    <h3>💎 套餐管理</h3>
+                    <div class="form-group"><label>套餐名称</label><input type="text" id="packageName"></div>
+                    <div class="form-group"><label>价格(元)</label><input type="number" id="packagePrice"></div>
+                    <div class="form-group"><label>有效天数</label><input type="number" id="packageDays"></div>
+                    <div class="form-group"><label>描述</label><textarea id="packageDesc" rows="2"></textarea></div>
+                    <button onclick="addPackage()" class="btn-primary">添加套餐</button>
+                    <div class="mt-2"><h4>现有套餐</h4><table class="data-table"><thead><tr><th>名称</th><th>价格</th><th>天数</th><th>操作</th></tr></thead><tbody>${packages.map(p => `<tr><td>${p.name}</td><td>¥${p.price}</td><td>${p.duration}天</td><td><button class="delete-btn" onclick="deletePackage(${p.id})">删除</button></td></tr>`).join('')}</tbody></table></div>
+                `;
+            }
+            else if (tab === 'coupon') {
+                const res = await fetch(`${API_URL}/api/coupons`);
+                const coupons = await res.json();
+                container.innerHTML = `
+                    <h3>🎫 优惠券管理</h3>
+                    <div class="form-group"><label>优惠券码</label><input type="text" id="couponCode" placeholder="例如：NEW2024"></div>
+                    <div class="form-group"><label>折扣金额(元)</label><input type="number" id="couponDiscount"></div>
+                    <div class="form-group"><label>有效期(天)</label><input type="number" id="couponDays"></div>
+                    <div class="form-group"><label>使用限制</label><input type="number" id="couponMinAmount" placeholder="最低消费金额" value="0"></div>
+                    <button onclick="addCoupon()" class="btn-primary">添加优惠券</button>
+                    <div class="mt-2"><h4>现有优惠券</h4><table class="data-table"><thead><tr><th>码</th><th>折扣</th><th>有效期</th><th>状态</th><th>操作</th></tr></thead><tbody>${coupons.map(c => `<tr><td>${c.code}</td><td>¥${c.discount}</td><td>${c.days}天</td><td>${c.valid ? '有效' : '过期'}</td><td><button class="delete-btn" onclick="deleteCoupon(${c.id})">删除</button></td></tr>`).join('')}</tbody></table></div>
+                `;
+            }
+        }
+
+        // 视频上传功能（分片上传支持大文件）
+        async function handleVideoUpload(file) {
+            if (!file) return;
+            if (!file.type.startsWith('video/')) {
+                alert('请选择视频文件');
+                return;
+            }
+            const courseId = document.getElementById('videoCourse').value;
+            const chunkSize = 2 * 1024 * 1024; // 2MB chunks
+            const chunks = Math.ceil(file.size / chunkSize);
+            const uploadId = Date.now();
+            
+            document.getElementById('videoProgress').style.display = 'block';
+            
+            for (let i = 0; i < chunks; i++) {
+                const start = i * chunkSize;
+                const end = Math.min(start + chunkSize, file.size);
+                const chunk = file.slice(start, end);
+                const formData = new FormData();
+                formData.append('chunk', chunk);
+                formData.append('chunkIndex', i);
+                formData.append('totalChunks', chunks);
+                formData.append('uploadId', uploadId);
+                formData.append('fileName', file.name);
+                formData.append('courseId', courseId);
+                
+                await fetch(`${API_URL}/api/upload-video-chunk`, { method: 'POST', body: formData });
+                
+                const percent = ((i + 1) / chunks * 100).toFixed(1);
+                document.getElementById('videoProgressFill').style.width = percent + '%';
+            }
+            
+            // 合并文件
+            const mergeRes = await fetch(`${API_URL}/api/merge-video`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uploadId, fileName: file.name, courseId })
+            });
+            const result = await mergeRes.json();
+            if (result.success) {
+                alert('视频上传成功！');
+                document.getElementById('videoProgress').style.display = 'none';
+                document.getElementById('videoProgressFill').style.width = '0%';
+                loadVideoList();
+            } else {
+                alert('上传失败：' + result.error);
+            }
+        }
+
+        async function loadVideoList() {
+            const res = await fetch(`${API_URL}/api/courses`);
+            const courses = await res.json();
+            const videos = courses.filter(c => c.video_url);
+            document.getElementById('videoList').innerHTML = videos.map(v => `
+                <div class="file-item">
+                    <span>🎬 ${v.name}</span>
+                    <span><a href="${v.video_url}" target="_blank">播放</a></span>
+                </div>
+            `).join('');
+        }
+
+        // 文件上传
+        async function handleFileUpload(file) {
+            if (!file) return;
+            const chunkSize = 2 * 1024 * 1024;
+            const chunks = Math.ceil(file.size / chunkSize);
+            const uploadId = Date.now();
+            
+            document.getElementById('fileProgress').style.display = 'block';
+            const progressFill = document.getElementById('fileProgressFill');
+            
+            for (let i = 0; i < chunks; i++) {
+                const start = i * chunkSize;
+                const end = Math.min(start + chunkSize, file.size);
+                const chunk = file.slice(start, end);
+                const formData = new FormData();
+                formData.append('chunk', chunk);
+                formData.append('chunkIndex', i);
+                formData.append('totalChunks', chunks);
+                formData.append('uploadId', uploadId);
+                formData.append('fileName', file.name);
+                
+                await fetch(`${API_URL}/api/upload-file-chunk`, { method: 'POST', body: formData });
+                const percent = ((i + 1) / chunks * 100).toFixed(1);
+                progressFill.style.width = percent + '%';
+            }
+            
+            const mergeRes = await fetch(`${API_URL}/api/merge-file`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uploadId, fileName: file.name })
+            });
+            if (mergeRes.ok) {
+                alert('文件上传成功！');
+                document.getElementById('fileProgress').style.display = 'none';
+                loadFileList();
+            }
+        }
+
+        async function loadFileList() {
+            const res = await fetch(`${API_URL}/api/files`);
+            const files = await res.json();
+            document.getElementById('fileList').innerHTML = files.map(f => `
+                <div class="file-item">
+                    <span>📄 ${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    <span><a href="${f.url}" target="_blank">下载</a></span>
+                </div>
+            `).join('');
+        }
+
+        async function loadChaptersForCourse() {
+            const courseId = document.getElementById('chapterCourse').value;
+            const res = await fetch(`${API_URL}/api/courses/${courseId}`);
+            const course = await res.json();
+            const container = document.getElementById('chapterList');
+            if (container) {
+                container.innerHTML = `
+                    <h4>现有章节</h4>
+                    ${course.chapters?.map((ch, idx) => `<div style="padding:0.5rem; border-bottom:1px solid #eee;">${idx+1}. ${ch} <button class="delete-btn" onclick="deleteChapter(${courseId}, ${idx})">删除</button></div>`).join('') || '暂无章节'}
+                `;
+            }
+        }
+
+        // API 调用函数
+        async function saveHomeContent() {
+            const data = {
+                heroTitle: document.getElementById('heroTitle').value,
+                heroSubtitle: document.getElementById('heroSubtitle').value,
+                features: document.getElementById('features').value.split('\n')
+            };
+            await fetch(`${API_URL}/api/home-content`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            alert('保存成功');
+        }
+
+        async function addCourse() {
+            const data = {
+                category: document.getElementById('courseCat').value,
+                name: document.getElementById('courseName').value,
+                desc: document.getElementById('courseDesc').value,
+                access: document.getElementById('courseAccess').value,
+                order: parseInt(document.getElementById('courseOrder').value)
+            };
+            const res = await fetch(`${API_URL}/api/courses`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if (res.ok) { alert('添加成功'); renderAdminContent('course'); loadStats(); }
+            else alert('添加失败');
+        }
+
+        async function deleteCourse(id) {
+            if (confirm('确定删除？')) {
+                await fetch(`${API_URL}/api/courses/${id}`, { method: 'DELETE' });
+                renderAdminContent('course');
+                loadStats();
+            }
+        }
+
+        async function addChapter() {
+            const courseId = document.getElementById('chapterCourse').value;
+            const chapterName = document.getElementById('newChapter').value;
+            if (!chapterName) return alert('请输入章节名称');
+            await fetch(`${API_URL}/api/courses/${courseId}/chapters`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chapter: chapterName }) });
+            alert('添加成功');
+            document.getElementById('newChapter').value = '';
+            loadChaptersForCourse();
+        }
+
+        async function deleteChapter(courseId, chapterIndex) {
+            if (confirm('确定删除？')) {
+                await fetch(`${API_URL}/api/courses/${courseId}/chapters/${chapterIndex}`, { method: 'DELETE' });
+                loadChaptersForCourse();
+            }
+        }
+
+        async function saveArticle() {
+            const title = document.getElementById('articleTitle').value;
+            const access = document.getElementById('articleAccess').value;
+            const content = quillEditor.root.innerHTML;
+            if (!title) return alert('请输入标题');
+            await fetch(`${API_URL}/api/articles`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, content, access }) });
+            alert('发布成功');
+            renderAdminContent('article');
+            loadStats();
+        }
+
+        async function deleteArticle(id) {
+            if (confirm('确定删除？')) {
+                await fetch(`${API_URL}/api/articles/${id}`, { method: 'DELETE' });
+                renderAdminContent('article');
+                loadStats();
+            }
+        }
+
+        async function addQuestion() {
+            const data = {
+                category: document.getElementById('qCat').value,
+                type: document.getElementById('qType').value,
+                question: document.getElementById('qText').value,
+                answer: document.getElementById('qAnswer').value,
+                options: document.getElementById('qOptions').value.split(',')
+            };
+            await fetch(`${API_URL}/api/questions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            alert('添加成功');
+            renderAdminContent('question');
+        }
+
+        async function deleteQuestion(id) {
+            if (confirm('确定删除？')) {
+                await fetch(`${API_URL}/api/questions/${id}`, { method: 'DELETE' });
+                renderAdminContent('question');
+            }
+        }
+
+        async function addUser() {
+            const data = {
+                username: document.getElementById('newUserName').value,
+                email: document.getElementById('newUserEmail').value,
+                password: document.getElementById('newUserPwd').value,
+                membership: document.getElementById('newUserMembership').value
+            };
+            await fetch(`${API_URL}/api/users`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            alert('添加成功');
+            renderAdminContent('user');
+            loadStats();
+        }
+
+        async function deleteUser(id) {
+            if (confirm('确定删除？')) {
+                await fetch(`${API_URL}/api/users/${id}`, { method: 'DELETE' });
+                renderAdminContent('user');
+                loadStats();
+            }
+        }
+
+        async function editUserMembership(id) {
+            const newMembership = prompt('输入会员类型 (none/month/year)');
+            if (newMembership) {
+                await fetch(`${API_URL}/api/users/${id}/membership`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ membership: newMembership }) });
+                renderAdminContent('user');
+            }
+        }
+
+        async function createOrder() {
+            const data = {
+                email: document.getElementById('orderEmail').value,
+                package: document.getElementById('orderPackage').value
+            };
+            await fetch(`${API_URL}/api/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            alert('订单创建成功');
+            renderAdminContent('order');
+            loadStats();
+        }
+
+        async function addPackage() {
+            const data = {
+                name: document.getElementById('packageName').value,
+                price: parseInt(document.getElementById('packagePrice').value),
+                duration: parseInt(document.getElementById('packageDays').value),
+                desc: document.getElementById('packageDesc').value
+            };
+            await fetch(`${API_URL}/api/packages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            alert('添加成功');
+            renderAdminContent('package');
+        }
+
+        async function deletePackage(id) {
+            if (confirm('确定删除？')) {
+                await fetch(`${API_URL}/api/packages/${id}`, { method: 'DELETE' });
+                renderAdminContent('package');
+            }
+        }
+
+        async function addCoupon() {
+            const data = {
+                code: document.getElementById('couponCode').value,
+                discount: parseInt(document.getElementById('couponDiscount').value),
+                days: parseInt(document.getElementById('couponDays').value),
+                minAmount: parseInt(document.getElementById('couponMinAmount').value)
+            };
+            await fetch(`${API_URL}/api/coupons`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            alert('添加成功');
+            renderAdminContent('coupon');
+        }
+
+        async function deleteCoupon(id) {
+            if (confirm('确定删除？')) {
+                await fetch(`${API_URL}/api/coupons/${id}`, { method: 'DELETE' });
+                renderAdminContent('coupon');
+            }
+        }
+
+        function editCourse(id) { alert('编辑功能：请删除后重新添加'); }
+        function editArticle(id) { alert('编辑功能：请删除后重新添加'); }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = '/';
+        }
+
+        // 拖拽上传设置
+        function setupDragAndDrop() {
+            const videoArea = document.getElementById('videoUploadArea');
+            const fileArea = document.getElementById('fileUploadArea');
+            if (videoArea) {
+                videoArea.addEventListener('dragover', (e) => { e.preventDefault(); videoArea.classList.add('drag-over'); });
+                videoArea.addEventListener('dragleave', () => videoArea.classList.remove('drag-over'));
+                videoArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    videoArea.classList.remove('drag-over');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('video/')) handleVideoUpload(file);
+                    else alert('请拖拽视频文件');
+                });
+            }
+            if (fileArea) {
+                fileArea.addEventListener('dragover', (e) => { e.preventDefault(); fileArea.classList.add('drag-over'); });
+                fileArea.addEventListener('dragleave', () => fileArea.classList.remove('drag-over'));
+                fileArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    fileArea.classList.remove('drag-over');
+                    handleFileUpload(e.dataTransfer.files[0]);
+                });
+            }
+        }
+
+        // 初始化
+        async function init() {
+            const isAuth = await checkAuth();
+            if (!isAuth) return;
+            await loadStats();
+            switchTab('home');
+            setupDragAndDrop();
+        }
+        init();
+    </script>
+</body>
+</html>

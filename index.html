@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>PCB&硬件进阶学院 - 专业在线教育平台</title>
+    <!-- 引入Quill富文本编辑器 -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <!-- 引入视频播放器 -->
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: #1d1d1f;
+        }
+
+        /* 流星效果 */
+        .cursor-particle {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, #fff, #ffd700, #ff6b6b);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            animation: meteorShower 0.8s ease-out forwards;
+        }
+
+        @keyframes meteorShower {
+            0% { opacity: 1; transform: scale(1) translate(0, 0); }
+            100% { opacity: 0; transform: scale(0) translate(30px, -30px); }
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            cursor: pointer;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-links button, .nav-links a {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: #1d1d1f;
+            font-weight: 500;
+        }
+
+        .nav-links button:hover, .nav-links a:hover {
+            background: #e8e8ed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white !important;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .content-section {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .category-btn {
+            padding: 0.5rem 1.2rem;
+            background: rgba(102,126,234,0.1);
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 20px;
+            transition: all 0.2s;
+        }
+
+        .category-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .course-grid, .article-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .course-card, .article-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .course-card:hover, .article-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        }
+
+        .course-thumbnail {
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+        }
+
+        .course-info, .article-info {
+            padding: 1rem;
+        }
+
+        .course-title, .article-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+
+        .course-meta {
+            font-size: 0.75rem;
+            color: #8e8e93;
+        }
+
+        .chapter-list {
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .lock-badge {
+            color: #ff9500;
+            font-size: 0.7rem;
+            margin-top: 0.3rem;
+            display: inline-block;
+        }
+
+        /* 视频播放器模态框 */
+        .video-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-modal-content {
+            width: 90%;
+            max-width: 1000px;
+            position: relative;
+        }
+
+        .video-modal-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            z-index: 2001;
+        }
+
+        .video-js {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16/9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(20px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 28px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.1);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border: 2px solid #e9e9ef;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .w-100 { width: 100%; }
+
+        @media (max-width: 768px) {
+            .nav-container { flex-direction: column; gap: 0.5rem; padding: 0.5rem 1rem; }
+            .container { padding: 1rem; }
+            .course-grid { grid-template-columns: 1fr; }
+            .section-title { font-size: 1.3rem; }
+        }
+
+        /* 文章内容样式 */
+        .article-content {
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+        .article-content img { max-width: 100%; border-radius: 12px; margin: 1rem 0; }
+        .article-content pre { background: #f5f5f5; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo" onclick="location.reload()">🔧 PCB&硬件进阶学院</div>
+            <div class="nav-links">
+                <a href="#" onclick="showSection('courses')">课程</a>
+                <a href="#" onclick="showSection('articles')">文章</a>
+                <button id="loginBtn" onclick="showLoginModal()">登录</button>
+                <button id="registerBtn" onclick="showRegisterModal()" class="btn-primary">注册</button>
+                <button id="adminBtn" onclick="window.location.href='admin.html'" style="display:none;">管理后台</button>
+                <button id="logoutBtn" onclick="logout()" style="display:none;">退出</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" id="app">
+        <div id="coursesSection" class="content-section">
+            <h2 class="section-title">📺 精选课程</h2>
+            <div class="category-tabs">
+                <button class="category-btn active" onclick="filterCourses('pcb')">PCB课程</button>
+                <button class="category-btn" onclick="filterCourses('hardware')">硬件课程</button>
+            </div>
+            <div id="courseList" class="course-grid">加载中...</div>
+        </div>
+        <div id="articlesSection" class="content-section" style="display:none;">
+            <h2 class="section-title">📝 技术文章</h2>
+            <div id="articleList" class="course-grid">加载中...</div>
+        </div>
+    </div>
+
+    <!-- 文章详情模态框 -->
+    <div id="articleModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close-btn" onclick="closeModal('articleModal')">✕</span>
+            <h2 id="articleTitle"></h2>
+            <div id="articleContent" class="article-content"></div>
+        </div>
+    </div>
+
+    <!-- 视频播放模态框 -->
+    <div id="videoModal" class="video-modal">
+        <div class="video-modal-content">
+            <div class="video-modal-close" onclick="closeVideoModal()">✕</div>
+            <video id="videoPlayer" class="video-js vjs-big-play-centered" controls preload="auto"></video>
+        </div>
+    </div>
+
+    <!-- 登录/注册模态框 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('loginModal')">✕</span>
+            <h2>登录</h2>
+            <div class="form-group"><label>邮箱</label><input type="email" id="loginEmail"></div>
+            <div class="form-group"><label>密码</label><input type="password" id="loginPassword"></div>
+            <button onclick="login()" class="btn-primary w-100">登录</button>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('registerModal')">✕</span>
+            <h2>注册</h2>
+            <div class="form-group"><label>用户名</label><input type="text" id="regUsername"></div>
+            <div class="form-group"><label>邮箱</label><input type="email" id="regEmail"></div>
+            <div class="form-group"><label>密码</label><input type="password" id="regPassword"></div>
+            <button onclick="register()" class="btn-primary w-100">注册</button>
+        </div>
+    </div>
+
+    <script>
+        // API基础URL
+        const API_URL = window.location.origin;
+        let currentUser = null;
+        let currentFilter = 'pcb';
+        let currentVideoPlayer = null;
+
+        // 流星效果
+        document.addEventListener('click', (e) => {
+            for (let i = 0; i < 6; i++) {
+                const p = document.createElement('div');
+                p.className = 'cursor-particle';
+                p.style.left = (e.clientX + (Math.random() - 0.5) * 30) + 'px';
+                p.style.top = (e.clientY + (Math.random() - 0.5) * 30) + 'px';
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 800);
+            }
+        });
+
+        // 加载数据
+        async function loadCourses() {
+            try {
+                const res = await fetch(`${API_URL}/api/courses`);
+                const courses = await res.json();
+                const filtered = courses.filter(c => c.category === currentFilter);
+                const display = currentUser?.role === 'admin' || currentUser?.membership !== 'none' ? filtered : filtered.filter(c => c.access === 'free');
+                document.getElementById('courseList').innerHTML = display.map(c => `
+                    <div class="course-card" onclick="playCourseVideo(${c.id})">
+                        <div class="course-thumbnail" style="background: linear-gradient(135deg, #667eea, #764ba2);">📘</div>
+                        <div class="course-info">
+                            <div class="course-title">${c.name}</div>
+                            <div class="chapter-list">${c.chapters?.map(ch => `<div>📌 ${ch}</div>`).join('') || ''}</div>
+                            <div class="course-meta">${c.video_url ? '🎬 含视频教程' : '📖 图文教程'}</div>
+                            ${c.access === 'member' && (!currentUser || currentUser.membership === 'none') ? '<div class="lock-badge">🔒 会员专享</div>' : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadArticles() {
+            try {
+                const res = await fetch(`${API_URL}/api/articles`);
+                const articles = await res.json();
+                const display = currentUser?.role === 'admin' || currentUser?.membership !== 'none' ? articles : articles.filter(a => a.access === 'free');
+                document.getElementById('articleList').innerHTML = display.map(a => `
+                    <div class="article-card" onclick="viewArticle(${a.id})">
+                        <div class="course-thumbnail" style="background: linear-gradient(135deg, #f093fb, #f5576c);">📄</div>
+                        <div class="article-info">
+                            <div class="article-title">${a.title}</div>
+                            ${a.access === 'member' && (!currentUser || currentUser.membership === 'none') ? '<div class="lock-badge">🔒 会员专享</div>' : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        async function playCourseVideo(courseId) {
+            try {
+                const res = await fetch(`${API_URL}/api/courses/${courseId}`);
+                const course = await res.json();
+                if (course.access === 'member' && (!currentUser || currentUser.membership === 'none')) {
+                    alert('此课程为会员专享，请升级会员！');
+                    showLoginModal();
+                    return;
+                }
+                if (course.video_url) {
+                    document.getElementById('videoModal').style.display = 'flex';
+                    if (currentVideoPlayer) currentVideoPlayer.dispose();
+                    currentVideoPlayer = videojs('videoPlayer', {
+                        controls: true,
+                        autoplay: true,
+                        preload: 'auto',
+                        sources: [{ src: course.video_url, type: 'video/mp4' }]
+                    });
+                } else {
+                    alert('该课程暂无视频，敬请期待！');
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function viewArticle(articleId) {
+            try {
+                const res = await fetch(`${API_URL}/api/articles/${articleId}`);
+                const article = await res.json();
+                if (article.access === 'member' && (!currentUser || currentUser.membership === 'none')) {
+                    alert('会员专享内容，请升级会员！');
+                    showLoginModal();
+                    return;
+                }
+                document.getElementById('articleTitle').innerHTML = article.title;
+                document.getElementById('articleContent').innerHTML = article.content;
+                document.getElementById('articleModal').style.display = 'flex';
+            } catch(e) { console.error(e); }
+        }
+
+        function closeVideoModal() {
+            if (currentVideoPlayer) {
+                currentVideoPlayer.pause();
+                currentVideoPlayer.dispose();
+                currentVideoPlayer = null;
+            }
+            document.getElementById('videoModal').style.display = 'none';
+        }
+
+        function showSection(section) {
+            document.getElementById('coursesSection').style.display = section === 'courses' ? 'block' : 'none';
+            document.getElementById('articlesSection').style.display = section === 'articles' ? 'block' : 'none';
+            if (section === 'courses') loadCourses();
+            if (section === 'articles') loadArticles();
+        }
+
+        function filterCourses(category) {
+            currentFilter = category;
+            loadCourses();
+            document.querySelectorAll('#coursesSection .category-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // 用户认证
+        async function register() {
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            if (!username || !email || !password) return alert('请填写完整');
+            try {
+                const res = await fetch(`${API_URL}/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                if (res.ok) {
+                    alert('注册成功，请登录');
+                    closeModal('registerModal');
+                } else alert('注册失败');
+            } catch(e) { console.error(e); }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            if (email === '443905849@qq.com' && password === 'chz15875539436') {
+                currentUser = { id: 'admin', username: '管理员', email, role: 'admin', membership: 'admin' };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUI();
+                closeModal('loginModal');
+                alert('管理员登录成功');
+                loadCourses();
+                loadArticles();
+                return;
+            }
+            try {
+                const res = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                if (res.ok) {
+                    currentUser = await res.json();
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateUI();
+                    closeModal('loginModal');
+                    alert('登录成功');
+                    loadCourses();
+                    loadArticles();
+                } else alert('邮箱或密码错误');
+            } catch(e) { console.error(e); }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateUI();
+            loadCourses();
+            loadArticles();
+        }
+
+        function updateUI() {
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            const adminBtn = document.getElementById('adminBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (currentUser) {
+                loginBtn.style.display = 'none';
+                registerBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                adminBtn.style.display = currentUser.role === 'admin' ? 'inline-block' : 'none';
+            } else {
+                loginBtn.style.display = 'inline-block';
+                registerBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+                adminBtn.style.display = 'none';
+            }
+        }
+
+        function showLoginModal() { document.getElementById('loginModal').style.display = 'flex'; }
+        function showRegisterModal() { document.getElementById('registerModal').style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        window.onclick = (e) => { if (e.target.classList.contains('modal')) e.target.style.display = 'none'; }
+
+        // 初始化
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) currentUser = JSON.parse(savedUser);
+        updateUI();
+        loadCourses();
+        loadArticles();
+    </script>
+</body>
+</html>
